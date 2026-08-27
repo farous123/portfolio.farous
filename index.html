@@ -133,14 +133,14 @@ section>*{position:relative;z-index:10}
 .proj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
 .proj-card{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border2);aspect-ratio:4/3;cursor:pointer;background:var(--navy3)}
 .proj-card img.proj-cover{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.16,1,.3,1)}
-.proj-card:hover img.proj-cover{transform:scale(1.06)}
+.proj-card:hover img.proj-cover,.proj-card.touch-active img.proj-cover{transform:scale(1.06)}
 .proj-info{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(2,9,18,.94) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:16px;transition:.35s}
 .proj-title{font-size:14.5px;font-weight:700;color:var(--text);font-family:'Space Grotesk',sans-serif}
 .proj-loc{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
 .proj-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);margin-top:6px;opacity:.9}
 .proj-strip{position:absolute;left:0;right:0;bottom:0;display:flex;gap:6px;padding:10px;background:rgba(2,9,18,.85);backdrop-filter:blur(6px);transform:translateY(100%);opacity:0;transition:.35s;overflow-x:auto}
-.proj-card:hover .proj-strip{transform:translateY(0);opacity:1}
-.proj-card:hover .proj-info{padding-bottom:80px}
+.proj-card:hover .proj-strip,.proj-card.touch-active .proj-strip{transform:translateY(0);opacity:1}
+.proj-card:hover .proj-info,.proj-card.touch-active .proj-info{padding-bottom:80px}
 .proj-strip img{width:52px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;transition:.2s}
 .proj-strip img:hover{border-color:var(--gold);transform:translateY(-3px)}
 @media(max-width:900px){.proj-grid{grid-template-columns:1fr 1fr}}
@@ -156,7 +156,7 @@ section>*{position:relative;z-index:10}
 .gal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .gal-item{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--border2);aspect-ratio:4/3;cursor:default}
 .gal-item img{width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.16,1,.3,1);display:block}
-.gal-item:hover img{transform:scale(1.08)}
+.gal-item:hover img,.gal-item.touch-active img{transform:scale(1.08)}
 .gal-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(2,9,18,.92) 100%);display:flex;align-items:flex-end;padding:18px}
 .gal-cap .t1{font-size:14.5px;font-weight:700;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
 .gal-cap .t2{font-family:'Courier New',Consolas,Menlo,monospace;font-size:10.5px;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
@@ -414,7 +414,7 @@ footer{background:var(--navy);border-top:1px solid var(--border2);padding:44px 8
   <p class="section-sub reveal" data-delay="1">تفاصيل تسجيل الشركة والبطاقات الرسمية.</p>
   <div class="legal-grid">
     <div class="legal-item reveal" data-delay="1"><span class="val">تضامن</span><span class="lbl">الكيان القانوني :</span></div>
-    <div class="legal-item reveal" data-delay="1"><span class="val">618 - 490 - 140</span><span class="lbl">رقم بطاقة ضريبية :</span></div>
+    <div class="legal-item reveal" data-delay="1"><span class="val">140 - 490 - 618</span><span class="lbl">رقم بطاقة ضريبية :</span></div>
     <div class="legal-item reveal" data-delay="2"><span class="val">151415</span><span class="lbl">رقم القيد في السجل التجاري :</span></div>
     <div class="legal-item reveal" data-delay="2"><span class="val">140 / 490 / 618</span><span class="lbl">رقم التسجيل في ضريبة المبيعات :</span></div>
     <div class="legal-item reveal" data-delay="3"><span class="val">24572</span><span class="lbl">رقم بطاقة العضوية في الإتحاد المصري لمقاولي التشييد والبناء :</span></div>
@@ -492,10 +492,38 @@ function renderProjects(){
         openLightbox(parseInt(img.dataset.g), parseInt(img.dataset.i));
       });
     });
+    // Touch support: first tap reveals the photo strip (mirrors :hover),
+    // a tap on the already-revealed cover opens the lightbox.
+    card.addEventListener('touchstart', (e) => {
+      if (!card.classList.contains('touch-active')) {
+        document.querySelectorAll('.proj-card.touch-active').forEach(c => {
+          if (c !== card) c.classList.remove('touch-active');
+        });
+        card.classList.add('touch-active');
+        if (e.target.closest('.proj-cover')) e.preventDefault();
+      }
+    }, {passive:false});
     grid.appendChild(card);
   });
   document.querySelectorAll('#projGrid .reveal:not(.visible)').forEach(el => revealObs.observe(el));
+
+  // Tapping anywhere outside a revealed card closes it again.
+  document.addEventListener('touchstart', (e) => {
+    if (!e.target.closest('.proj-card')) {
+      document.querySelectorAll('.proj-card.touch-active').forEach(c => c.classList.remove('touch-active'));
+    }
+  }, {passive:true});
 }
+
+// Gallery grid: tap toggles the zoom effect on touch devices.
+document.querySelectorAll('.gal-item').forEach(item => {
+  item.addEventListener('touchstart', () => {
+    document.querySelectorAll('.gal-item.touch-active').forEach(g => {
+      if (g !== item) g.classList.remove('touch-active');
+    });
+    item.classList.toggle('touch-active');
+  }, {passive:true});
+});
 
 let lbGroup = 0, lbIndex = 0;
 function openLightbox(g, i){
@@ -512,6 +540,26 @@ document.getElementById('lbClose').addEventListener('click', () => document.getE
 document.getElementById('lightbox').addEventListener('click', (e) => { if(e.target.id === 'lightbox') document.getElementById('lightbox').classList.remove('active'); });
 document.getElementById('lbPrev').addEventListener('click', () => { const p = PROJECTS[lbGroup]; lbIndex = (lbIndex - 1 + p.images.length) % p.images.length; updateLightbox(); });
 document.getElementById('lbNext').addEventListener('click', () => { const p = PROJECTS[lbGroup]; lbIndex = (lbIndex + 1) % p.images.length; updateLightbox(); });
+
+// Touch swipe support in the lightbox (swipe left/right for next/prev).
+(function(){
+  const lb = document.getElementById('lightbox');
+  let touchStartX = 0, touchStartY = 0;
+  lb.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].clientX;
+    touchStartY = e.changedTouches[0].clientY;
+  }, {passive:true});
+  lb.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      const p = PROJECTS[lbGroup];
+      if (dx < 0) lbIndex = (lbIndex + 1) % p.images.length;
+      else lbIndex = (lbIndex - 1 + p.images.length) % p.images.length;
+      updateLightbox();
+    }
+  }, {passive:true});
+})();
 
 renderProjects();
 </script>
